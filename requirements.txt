@@ -2,3 +2,4 @@ bcrypt
 python-dotenv
 flask 
 flask_pymongo
+
