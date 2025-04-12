@@ -1,0 +1,19 @@
+.App-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #2b2b2b;
+  position: relative;
+}
+
+.nav-wrapper {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 10px;
+}

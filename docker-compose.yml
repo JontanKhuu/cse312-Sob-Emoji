@@ -1,0 +1,16 @@
+services:
+  mongo:
+    image: mongo:4.2.5
+    volumes:
+      - mongo_data:/data/db  # Use a named volume for MongoDB data
+  myapp:
+    build: .
+    environment:
+      WAIT_HOSTS: mongo:27017
+      DOCKER_DB: true
+    ports:
+      - '8080:8080'
+    volumes:
+      - .:/app # Mount current directory to /app
+volumes:
+  mongo_data: # Declare the named volume
