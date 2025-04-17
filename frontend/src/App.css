@@ -28,3 +28,19 @@
   justify-content: right;
   gap: 10px;
 }
+
+
+.nav-button{
+  font-size: 1em;
+  background-color: rgb(140, 140, 140);
+  height: 2.5em;
+  width: 8em;
+  border-radius: .5em;
+  color: rgb(0, 0, 0);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.nav-button:hover{
+  background-color: rgb(110, 110, 110);
+  color:white;
+}
