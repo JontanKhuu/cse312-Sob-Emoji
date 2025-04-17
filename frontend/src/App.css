@@ -2,11 +2,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: .5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
   background-color: #2b2b2b;
   position: relative;
 
-  height: 5rem;
+  max-height: 10rem;
+  min-width: 35rem;
 }
 
 .App-title {

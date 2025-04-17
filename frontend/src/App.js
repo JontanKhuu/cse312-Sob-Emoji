@@ -23,7 +23,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1 className="App-title">😭CSE 312 GAME IDEA</h1>
+        <h1 className="App-title">😭 CSE 312 GAME IDEA</h1>
 
         <div className = "login-div">
           <div className="nav-buttons">
@@ -34,9 +34,9 @@ function App() {
                 for (var i = 0; i < x.length; i++) {
                   x[i].style.background = "rgb(110, 110, 110)";
                 }
-                var x = document.getElementsByClassName("nav-button-login");
-                for (var i = 0; i < x.length; i++) {
-                  x[i].style.background = "rgb(140, 140, 140)";
+                var y = document.getElementsByClassName("nav-button-login");
+                for (var j = 0; j < y.length; j++) {
+                  y[j].style.background = "rgb(140, 140, 140)";
                 }
             }}>Register</button>
             <button className="nav-button nav-button-login" onClick={() => { setShowRegister(false); setShowLogin(false); setShowLogin(true);
@@ -45,9 +45,9 @@ function App() {
               for (var i = 0; i < x.length; i++) {
                 x[i].style.background = "rgb(110, 110, 110)";
               }
-              var x = document.getElementsByClassName("nav-button-register");
-              for (var i = 0; i < x.length; i++) {
-                x[i].style.background = "rgb(140, 140, 140)";
+              var y = document.getElementsByClassName("nav-button-register");
+              for (var j = 0; j < y.length; j++) {
+                y[j].style.background = "rgb(140, 140, 140)";
               }
             }}>Login</button>
           </div>
