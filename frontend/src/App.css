@@ -11,6 +11,12 @@
   color: white
 }
 
+.login-div {
+  display: flex;
+  flex-direction: column;
+  justify-content: right;
+}
+
 .nav-wrapper {
   position: absolute;
   top: 20px;
@@ -19,5 +25,6 @@
 
 .nav-buttons {
   display: flex;
+  justify-content: right;
   gap: 10px;
 }

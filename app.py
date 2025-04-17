@@ -22,5 +22,5 @@ def hello():
     insert_hardcoded_data()  # Call the function when the root route is accessed.
     return "Data inserted! Check your MongoDB database."
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
