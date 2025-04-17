@@ -23,12 +23,33 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1 className="App-title">CSE 312 GAME IDEA</h1>
+        <h1 className="App-title">😭CSE 312 GAME IDEA</h1>
 
         <div className = "login-div">
           <div className="nav-buttons">
-            <button className="nav-button" onClick={() => { setShowRegister(false); setShowLogin(false); setShowRegister(true); }}>Register</button>
-            <button className="nav-button" onClick={() => { setShowRegister(false); setShowLogin(false); setShowLogin(true); }}>Login</button>
+            <button className="nav-button nav-button-register" onClick={() => {
+                setShowRegister(false); setShowLogin(false); setShowRegister(true);
+                // Make the button appear visibly depressed
+                var x = document.getElementsByClassName("nav-button-register");
+                for (var i = 0; i < x.length; i++) {
+                  x[i].style.background = "rgb(110, 110, 110)";
+                }
+                var x = document.getElementsByClassName("nav-button-login");
+                for (var i = 0; i < x.length; i++) {
+                  x[i].style.background = "rgb(140, 140, 140)";
+                }
+            }}>Register</button>
+            <button className="nav-button nav-button-login" onClick={() => { setShowRegister(false); setShowLogin(false); setShowLogin(true);
+              // Make the button appear visibly depressed
+              var x = document.getElementsByClassName("nav-button-login");
+              for (var i = 0; i < x.length; i++) {
+                x[i].style.background = "rgb(110, 110, 110)";
+              }
+              var x = document.getElementsByClassName("nav-button-register");
+              for (var i = 0; i < x.length; i++) {
+                x[i].style.background = "rgb(140, 140, 140)";
+              }
+            }}>Login</button>
           </div>
 
           {showLogin && (
