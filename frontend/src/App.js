@@ -9,6 +9,8 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
+  const [showButtons, setShowButtons] = useState(true);     // Variable that controls rendering buttons
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -24,14 +26,12 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1 className="App-title">CSE 312 GAME IDEA</h1>
-        <div className="nav-buttons">
-          <button className="nav-button" onClick={() => { setShowRegister(false); setShowLogin(false); setShowRegister(true); }}>Register</button>
-          <button className="nav-button" onClick={() => { setShowRegister(false); setShowLogin(false); setShowLogin(true); }}>Login</button>
-        </div>
-      </header>
-
-      <main className="App-main">
-        <p className="placeholder">Video Game goes :) here!</p>
+        {showButtons && (
+          <div className="nav-buttons">
+            <button className="nav-button" onClick={() => { setShowRegister(false); setShowLogin(false); setShowRegister(true); setShowButtons(false); }}>Register</button>
+            <button className="nav-button" onClick={() => { setShowRegister(false); setShowLogin(false); setShowLogin(true); setShowButtons(false); }}>Login</button>
+            </div>
+          )}
 
         {showLogin && (
           <form onSubmit={handleLogin} className="auth-form">
@@ -63,6 +63,11 @@ function App() {
             <button type="submit" className="auth-button">Register</button>
           </form>
         )}
+
+      </header>
+
+      <main className="App-main">
+        <p className="placeholder">Video Game goes :) here!</p>
 
         {message && <p className="auth-message">{message}</p>}
       </main>

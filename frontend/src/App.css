@@ -7,6 +7,10 @@
   position: relative;
 }
 
+.App-title {
+  color: white
+}
+
 .nav-wrapper {
   position: absolute;
   top: 20px;
