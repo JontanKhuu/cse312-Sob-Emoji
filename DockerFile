@@ -1,29 +1,15 @@
-# Use an official Python runtime as a parent image
-FROM python:3.13-alpine
+FROM python:alpine
 
-# Copy the current directory contents into the container
-COPY ./requirements.txt ./requirements.txt
-COPY . /app.py
+WORKDIR /app
 
-# Update apk
-RUN apk update
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-# Install essential build dependencies
-RUN apk add --no-cache --virtual .build-deps \
-    gcc musl-dev libffi-dev openssl-dev
+COPY . .
 
-# Install libressl
-RUN apk add --no-cache libressl
+# Set environment variables for logging (optional, but good practice)
+ENV LOG_LEVEL=INFO
+ENV LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
-# Install Python dependencies
-RUN pip3 install --no-cache-dir -r requirements.txt
-
-# Clean up build dependencies and apk cache
-RUN apk del .build-deps && \
-    rm -rf /var/cache/apk/*
-
-ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.2.1/wait /wait
-RUN chmod +x /wait
-
-# Define the command to run the application
+# Define the command to run your Flask application
 CMD ["python", "app.py"]

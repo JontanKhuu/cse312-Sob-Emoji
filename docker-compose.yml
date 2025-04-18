@@ -1,16 +1,37 @@
+version: '3.8'
+
 services:
-  mongo:
-    image: mongo:4.2.5
-    volumes:
-      - mongo_data:/data/db  # Use a named volume for MongoDB data
-  myapp:
+  web:
     build: .
-    environment:
-      WAIT_HOSTS: mongo:27017
-      DOCKER_DB: true
     ports:
-      - '8080:8080'
+      - "8080:8080"
     volumes:
-      - .:/app # Mount current directory to /app
+      - .:/app
+    environment:
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      - DATABASE_HOST=db
+      - DATABASE_PORT=27017
+      - DATABASE_NAME=CSE312-SobEmoji
+    depends_on:
+      - db
+    command: python app.py
+
+  db:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - db_data:/data/db
+    # Remove the environment variables that enable authentication
+    # environment:
+    #   - MONGO_INITDB_ROOT_USERNAME=your_username
+    #   - MONGO_INITDB_ROOT_PASSWORD=your_password
+    #   - MONGO_INITDB_DATABASE=ooof
+
+    # Explicitly don't set authentication-related variables
+    environment:
+      - MONGO_INITDB_DATABASE=CSE312-SobEmoji
+
 volumes:
-  mongo_data: # Declare the named volume
+  db_data:
