@@ -2,9 +2,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: .5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
   background-color: #2b2b2b;
   position: relative;
+
+  max-height: 10rem;
+  min-width: 35rem;
+}
+
+.App-title {
+  color: white;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.login-div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .nav-wrapper {
@@ -15,5 +31,52 @@
 
 .nav-buttons {
   display: flex;
+  justify-content: right;
   gap: 10px;
+  margin-bottom: 10px
+}
+
+
+.nav-button{
+  font-size: 1rem;
+  background-color: rgb(140, 140, 140);
+  height: 2.5rem;
+  width: 8rem;
+  border-radius: .5rem;
+  color: rgb(0, 0, 0);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.nav-button:hover{
+  background-color: rgb(110, 110, 110);
+  color:white;
+}
+
+.nav-button:active{
+  background-color: rgb(80, 80, 80);
+  color:white;
+}
+
+.auth-button{
+  /* font-size: 1em; */
+  background-color: rgb(170, 170, 170);
+  height: 1.5rem;
+  width: 8rem;
+  border-radius: .25rem;
+  color: rgb(0, 0, 0);
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.auth-button:hover{
+  background-color: rgb(110, 110, 110);
+  color:white;
+}
+
+.auth-button:active{
+  background-color: rgb(80, 80, 80);
+  color:white;
+}
+
+.auth-input {
+  margin: 2px;
 }

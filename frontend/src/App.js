@@ -23,46 +23,71 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1 className="App-title">CSE 312 GAME IDEA</h1>
-        <div className="nav-buttons">
-          <button className="nav-button" onClick={() => { setShowRegister(false); setShowLogin(false); setShowRegister(true); }}>Register</button>
-          <button className="nav-button" onClick={() => { setShowRegister(false); setShowLogin(false); setShowLogin(true); }}>Login</button>
+        <h1 className="App-title">😭 CSE 312 GAME IDEA</h1>
+
+        <div className = "login-div">
+          <div className="nav-buttons">
+            <button className="nav-button nav-button-register" onClick={() => {
+                setShowRegister(false); setShowLogin(false); setShowRegister(true);
+                // Make the button appear visibly depressed
+                var x = document.getElementsByClassName("nav-button-register");
+                for (var i = 0; i < x.length; i++) {
+                  x[i].style.background = "rgb(110, 110, 110)";
+                }
+                var y = document.getElementsByClassName("nav-button-login");
+                for (var j = 0; j < y.length; j++) {
+                  y[j].style.background = "rgb(140, 140, 140)";
+                }
+            }}>Register</button>
+            <button className="nav-button nav-button-login" onClick={() => { setShowRegister(false); setShowLogin(false); setShowLogin(true);
+              // Make the button appear visibly depressed
+              var x = document.getElementsByClassName("nav-button-login");
+              for (var i = 0; i < x.length; i++) {
+                x[i].style.background = "rgb(110, 110, 110)";
+              }
+              var y = document.getElementsByClassName("nav-button-register");
+              for (var j = 0; j < y.length; j++) {
+                y[j].style.background = "rgb(140, 140, 140)";
+              }
+            }}>Login</button>
+          </div>
+
+          {showLogin && (
+            <form onSubmit={handleLogin} className="auth-form">
+              <input
+                className="auth-input"
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <input
+                className="auth-input"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button type="submit" className="auth-button">Login</button>
+            </form>
+          )}
+
+          {showRegister && (
+            <form onSubmit={(e) => e.preventDefault()} className="auth-form">
+              <input className="auth-input" type="text" placeholder="Username" required />
+              <input className="auth-input" type="email" placeholder="Email" required />
+              <input className="auth-input" type="password" placeholder="Password" required />
+              <button type="submit" className="auth-button">Register</button>
+            </form>
+          )}
         </div>
+
       </header>
 
       <main className="App-main">
-        <p className="placeholder">Video Game goes :) here!</p>
-
-        {showLogin && (
-          <form onSubmit={handleLogin} className="auth-form">
-            <input
-              className="auth-input"
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              className="auth-input"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <button type="submit" className="auth-button">Login</button>
-          </form>
-        )}
-
-        {showRegister && (
-          <form onSubmit={(e) => e.preventDefault()} className="auth-form">
-            <input className="auth-input" type="text" placeholder="Username" required />
-            <input className="auth-input" type="email" placeholder="Email" required />
-            <input className="auth-input" type="password" placeholder="Password" required />
-            <button type="submit" className="auth-button">Register</button>
-          </form>
-        )}
+        <p className="placeholder">Video Game goes here! :)</p>
 
         {message && <p className="auth-message">{message}</p>}
       </main>
