@@ -5,11 +5,11 @@ import PIL.Image
 
 
 
-def create_avatar():
+def create_avatar(username, filename):
     myimage = PIL.Image.open("../frontend/public/sprites/player_base.png")
 
     # Avatar to resize 56x56
-    myavatar = PIL.Image.open("../frontend/public/sprites/lia_avatar.png")
+    myavatar = PIL.Image.open(filename)
     myavatar = myavatar.resize((56,56))
 
     #print(myimage.format, myimage.size, myimage.mode)
@@ -23,8 +23,12 @@ def create_avatar():
 
     #new.show()
 
-    myoutput = ("hybridized.png","wb")
-    new.save("hybridized.png","PNG")
+    out_path = "../frontend/public/avatars/avsprite_" + username + ".png"
 
-
+    new.save(out_path,"PNG")
     return
+
+
+# DEBUGGING
+if __name__ == '__main__':
+    create_avatar("Liandra", "../frontend/public/avatars/lia_avatar.png")
