@@ -4,7 +4,6 @@ import axios from 'axios';
 
 function App() {
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [showLogin, setShowLogin] = useState(false);
@@ -25,7 +24,7 @@ function App() {
     e.preventDefault();
     try {
       const res = await axios.post('/api/login', { username, password });
-      localStorage.setItem('token', res.data.token || 'token-placeholder');
+      localStorage.setItem('token', res.data.token);
       localStorage.setItem('username', username);
       setIsLoggedIn(true);
       setCurrentUser(username);
@@ -42,11 +41,10 @@ function App() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('/api/register', { username, password });
+      await axios.post('/api/register', { username, password });
       setMessage('✅ Registered successfully! Please login.');
       setUsername('');
       setPassword('');
-      setEmail('');
       setShowRegister(false);
       setShowLogin(true);
     } catch (err) {
@@ -133,14 +131,6 @@ function App() {
                   placeholder="Username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-                <input
-                  className="auth-input"
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
                 <input
