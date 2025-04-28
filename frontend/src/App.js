@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 function App() {
   const [username, setUsername] = useState('');
@@ -10,6 +11,12 @@ function App() {
   const [showRegister, setShowRegister] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState('');
+  const [inGame, setInGame] = useState(false);
+  const [socket, setSocket] = useState(null);
+  const [players, setPlayers] = useState([]);
+  const [foods, setFoods] = useState([]);
+  const [gameOver, setGameOver] = useState(false);
+  const [winner, setWinner] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -61,6 +68,9 @@ function App() {
     setMessage('Logged out!');
     setShowLogin(false);
     setShowRegister(false);
+    if (socket) {
+      socket.disconnect();
+    }
   };
 
   const setActiveButtonStyle = (btn) => {
@@ -74,6 +84,75 @@ function App() {
       registerBtn.style.background = 'rgb(110, 110, 110)';
     }
   };
+
+  const endGame = () => {
+    if (socket) {
+      socket.emit('force_end_game'); // Force backend to end
+    }
+  };
+
+  const handleJoinGame = () => {
+    const newSocket = io('http://localhost:8080');
+    setSocket(newSocket);
+    setInGame(true);
+
+    newSocket.emit('join_game', { username: currentUser });
+
+    newSocket.on('game_update', (data) => {
+      setPlayers(data.players);
+      setFoods(data.foods);
+    });
+
+    newSocket.on('game_over', (data) => {
+      setWinner(data.winner ? `${data.winner} (Score: ${data.score})` : "No one");
+      setGameOver(true);
+      setInGame(false);
+      newSocket.disconnect();
+    });
+
+    newSocket.on('connect', () => {
+      console.log('✅ Connected to game WebSocket');
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('⚡ Disconnected');
+    });
+
+    newSocket.emit('start_game');
+
+    setTimeout(() => {
+      endGame();
+    }, 10000); // 120 seconds = 2 minutes
+  };
+
+  const returnToHome = () => {
+    setInGame(false);
+    setGameOver(false);
+    setPlayers([]);
+    setFoods([]);
+    setWinner('');
+    setSocket(null);
+  };
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleKeyDown = (e) => {
+      let direction = null;
+      if (e.key === 'w') direction = 'up';
+      if (e.key === 'a') direction = 'left';
+      if (e.key === 's') direction = 'down';
+      if (e.key === 'd') direction = 'right';
+
+      if (direction) {
+        socket.emit('move', { username: currentUser, direction });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [socket, currentUser]);
 
   return (
     <div className="App">
@@ -93,7 +172,6 @@ function App() {
                 setShowLogin(false);
                 setActiveButtonStyle('register');
               }}>Register</button>
-
               <button className="nav-button nav-button-login" onClick={() => {
                 setShowRegister(false);
                 setShowLogin(true);
@@ -103,44 +181,16 @@ function App() {
 
             {showLogin && (
               <form onSubmit={handleLogin} className="auth-form">
-                <input
-                  className="auth-input"
-                  type="text"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-                <input
-                  className="auth-input"
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <input className="auth-input" type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                <input className="auth-input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 <button type="submit" className="auth-button">Login</button>
               </form>
             )}
 
             {showRegister && (
               <form onSubmit={handleRegister} className="auth-form">
-                <input
-                  className="auth-input"
-                  type="text"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-                <input
-                  className="auth-input"
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <input className="auth-input" type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                <input className="auth-input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 <button type="submit" className="auth-button">Register</button>
               </form>
             )}
@@ -149,8 +199,60 @@ function App() {
       </header>
 
       <main className="App-main">
-        <p className="placeholder">Video Game goes here! :)</p>
         {message && <p className="auth-message">{message}</p>}
+
+        {isLoggedIn && !inGame && !gameOver && (
+          <button className="auth-button" onClick={handleJoinGame}>
+            Join Game
+          </button>
+        )}
+
+        {gameOver && (
+          <div className="game-over">
+            <h2>🏆 The winner is {winner}!</h2>
+            <button className="auth-button" onClick={returnToHome}>
+              Return to Home
+            </button>
+          </div>
+        )}
+
+        {inGame && !gameOver && (
+          <>
+            <div className="board">
+              {Array.from({ length: 20 }).map((_, y) => (
+                <div key={y} className="row">
+                  {Array.from({ length: 20 }).map((_, x) => {
+                    const playerHere = players.find(p => p.x === x && p.y === y);
+                    const foodHere = foods.find(f => f.x === x && f.y === y);
+
+                    return (
+                      <div key={x} className="cell">
+                        {foodHere && <div className="food"></div>}
+                        {playerHere && (
+                          <div className="player">
+                            {playerHere.username}
+                            <div className="score">{playerHere.score}</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            <div className="players-list">
+              <h2>Players in Game:</h2>
+              <ul>
+                {players.map((p, idx) => (
+                  <li key={idx}>
+                    {p.username} (Score: {p.score})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

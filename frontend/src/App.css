@@ -80,3 +80,98 @@
 .auth-input {
   margin: 2px;
 }
+
+/* Add to App.css */
+.game-container {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.game-board {
+  position: relative;
+  width: 600px;
+  height: 400px;
+  margin: 0 auto;
+  background-color: #f0f0f0;
+  border: 3px solid #333;
+  overflow: hidden;
+}
+
+.player {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: #4CAF50;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-name {
+  position: absolute;
+  top: -20px;
+  font-size: 10px;
+  color: #333;
+  white-space: nowrap;
+}
+.game-area {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  margin-top: 20px;
+}
+
+.player-list {
+  width: 200px;
+}
+
+.player-list ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.player-list li {
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+
+.board {
+  display: inline-block;
+  margin: 20px;
+}
+
+.row {
+  display: flex;
+}
+
+.cell {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #999;
+  position: relative;
+}
+
+.player {
+  background-color: blue;
+  width: 100%;
+  height: 100%;
+  color: white;
+  font-size: 10px;
+  text-align: center;
+}
+
+.food {
+  background-color: red;
+  width: 100%;
+  height: 100%;
+}
+
+.score {
+  font-size: 8px;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
