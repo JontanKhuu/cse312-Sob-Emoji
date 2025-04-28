@@ -219,6 +219,7 @@ function App() {
         {inGame && !gameOver && (
           <>
             <div className="board">
+              <h2>COLLECT THE MOST AMMOUNT OF FOOD IN 60 SECONDS TO WIN</h2>
               {Array.from({ length: 20 }).map((_, y) => (
                 <div key={y} className="row">
                   {Array.from({ length: 20 }).map((_, x) => {
