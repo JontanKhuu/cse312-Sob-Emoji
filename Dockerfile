@@ -15,14 +15,23 @@ RUN apk update && apk add --no-cache \
     zlib-dev \
     && pip install --upgrade pip
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+# Create app folder and fix permissions BEFORE switching user
+RUN mkdir /app && chown appuser:appgroup /app
 
+# Create user and group
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Set working directory
 WORKDIR /app
 
+# Switch to appuser
+
+
+# Copy requirements and install them
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy rest of the application
 COPY app.py .
 COPY frontend/build frontend/build
 

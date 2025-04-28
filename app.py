@@ -24,7 +24,7 @@ mongo_port = int(os.environ.get('DATABASE_PORT', 27017))
 mongo_db_name = os.environ.get('DATABASE_NAME', 'CSE312-SobEmoji')
 app.config["MONGO_URI"] = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db_name}"
 if not os.path.exists('/logs'):
-    os.makedirs('/logs', exist_ok=True)
+    os.makedirs('./logs', exist_ok=True)
 
 log_formatter = logging.Formatter('%(asctime)s - %(message)s')
 log_file_handler = logging.FileHandler('/logs/server.log')
