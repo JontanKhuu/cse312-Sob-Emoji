@@ -2,4 +2,5 @@ bcrypt
 python-dotenv
 flask 
 flask_pymongo
-
+eventlet 
+flask_socketio
