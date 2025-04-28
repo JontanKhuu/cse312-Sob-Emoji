@@ -4,6 +4,8 @@ import os
 import time
 import bcrypt
 import re
+import logging
+from datetime import datetime
 
 app = Flask(
     __name__,
@@ -11,11 +13,13 @@ app = Flask(
     static_url_path='/'
 )
 
+# MongoDB Configuration
 mongo_host = os.environ.get('DATABASE_HOST', 'db')
 mongo_port = int(os.environ.get('DATABASE_PORT', 27017))
 mongo_db_name = os.environ.get('DATABASE_NAME', 'CSE312-SobEmoji')
 app.config["MONGO_URI"] = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db_name}"
 
+# MongoDB Connection with Retry
 max_retries = 5
 retry_delay = 5
 mongo = None
@@ -32,6 +36,27 @@ for i in range(max_retries):
         else:
             raise
 
+# Setup Logging
+if not os.path.exists('/logs'):
+    os.makedirs('/logs')
+
+log_formatter = logging.Formatter('%(asctime)s - %(message)s')
+log_file_handler = logging.FileHandler('/logs/server.log')
+log_file_handler.setFormatter(log_formatter)
+log_file_handler.setLevel(logging.INFO)
+
+app.logger.addHandler(log_file_handler)
+app.logger.setLevel(logging.INFO)
+
+@app.before_request
+def log_request_info():
+    ip = request.remote_addr
+    method = request.method
+    path = request.path
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    app.logger.info(f"{timestamp} - {ip} - {method} {path}")
+
+# Helpers
 def is_valid_password(password):
     return (
         len(password) >= 8 and
@@ -44,6 +69,7 @@ def hash_password(password: str) -> str:
 def check_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
+# API Routes
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -82,7 +108,7 @@ def login():
 def logout():
     data = request.get_json() or {}
     username = data.get('username', 'unknown')
-    print(f"User '{username}' logged out.")
+    app.logger.info(f"User '{username}' logged out.")
     return jsonify({"status": "success", "message": "Logged out"}), 200
 
 @app.route('/api/insert')
@@ -90,26 +116,25 @@ def insert_hardcoded_data():
     try:
         if mongo:
             user_id = mongo.db.users.insert_one({'name': 'Test User', 'age': 99}).inserted_id
-            print(f"Inserted user with ID: {user_id}")
+            app.logger.info(f"Inserted user with ID: {user_id}")
             return {"status": "success", "inserted_id": str(user_id)}
         else:
-            print("MongoDB client not initialized. Cannot insert data.")
+            app.logger.error("MongoDB client not initialized. Cannot insert data.")
             return {"status": "error", "message": "MongoDB client not initialized"}
     except Exception as e:
-        print(f"An error occurred during data insertion: {e}")
+        app.logger.error(f"An error occurred during data insertion: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.route('/')
-def serve_react():
-    return send_from_directory(app.static_folder, 'index.html')
-
+# Serve React Frontend
+@app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_static(path):
     file_path = os.path.join(app.static_folder, path)
-    if os.path.exists(file_path):
+    if path != "" and os.path.exists(file_path):
         return send_from_directory(app.static_folder, path)
     else:
         return send_from_directory(app.static_folder, 'index.html')
 
+# Main
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8080)
