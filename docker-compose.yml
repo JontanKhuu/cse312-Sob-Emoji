@@ -2,10 +2,6 @@ version: '3.8'
 
 services:
   web:
-    deploy:
-      resources:
-        limits:
-          memory: 512M
     build: .
     ports:
       - "8080:8080"
@@ -24,6 +20,7 @@ services:
 
   db:
     image: mongo:latest
+
     volumes:
       - db_data:/data/db
     # Remove the environment variables that enable authentication
