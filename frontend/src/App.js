@@ -122,7 +122,7 @@ function App() {
 
     setTimeout(() => {
       endGame();
-    }, 10000); // 120 seconds = 2 minutes
+    }, 60000); // 120 seconds = 2 minutes
   };
 
   const returnToHome = () => {
