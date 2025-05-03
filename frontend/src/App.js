@@ -84,7 +84,27 @@ function App() {
       registerBtn.style.background = 'rgb(110, 110, 110)';
     }
   };
-
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files[0];
+    console.log("Selected file:", file);
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('avatar', file);
+    formData.append('username', currentUser);
+  
+    try {
+      const res = await axios.post('/api/upload-avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      setMessage('✅ Avatar uploaded successfully!');
+    } catch (err) {
+      setMessage('❌ Failed to upload avatar');
+    }
+  };
+  
   const endGame = () => {
     if (socket) {
       socket.emit('force_end_game'); // Force backend to end
@@ -206,7 +226,20 @@ function App() {
             Join Game
           </button>
         )}
-
+       
+       <input
+  id="avatar-upload"
+  type="file"
+  accept="image/png, image/jpeg"
+  onChange={handleAvatarUpload}
+  style={{ display: 'none' }}
+ />
+<button
+  className="auth-button"
+  onClick={() => document.getElementById('avatar-upload').click()}
+>
+  Change Avatar
+</button>
         {gameOver && (
           <div className="game-over">
             <h2>🏆 The winner is {winner}!</h2>
@@ -230,11 +263,18 @@ function App() {
                       <div key={x} className="cell">
                         {foodHere && <div className="food"></div>}
                         {playerHere && (
-                          <div className="player">
-                            {playerHere.username}
-                            <div className="score">{playerHere.score}</div>
-                          </div>
-                        )}
+                        <div className="player">
+                        <img
+                          src={playerHere.avatar ? `/avatars/${playerHere.avatar}` : `/avatars/default.png`}
+                          alt="avatar"
+                          className="avatar-img"
+                          style={{ width: 30, height: 30, borderRadius: '50%' }}
+                        />
+                        {playerHere.username}
+                        <div className="score">{playerHere.score}</div>
+                      </div>
+                       )}
+
                       </div>
                     );
                   })}

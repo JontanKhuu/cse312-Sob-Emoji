@@ -8,6 +8,7 @@ services:
     volumes:
       - .:/app
       - ./logs:/logs
+      - ./avatars:/app/avatars
     environment:
       - LOG_LEVEL=INFO
       - LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
