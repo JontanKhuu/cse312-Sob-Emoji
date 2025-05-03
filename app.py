@@ -13,6 +13,8 @@ from flask_socketio import SocketIO, emit
 from datetime import datetime
 import random
 import logging
+from werkzeug.utils import secure_filename
+from PIL import Image
 
 # --- Flask Setup ---
 app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
@@ -25,6 +27,13 @@ mongo_db_name = os.environ.get('DATABASE_NAME', 'CSE312-SobEmoji')
 app.config["MONGO_URI"] = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db_name}"
 if not os.path.exists('/logs'):
     os.makedirs('./logs', exist_ok=True)
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+UPLOAD_FOLDER = os.path.join(os.getcwd(),'avatars')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Ensure upload folder exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 log_formatter = logging.Formatter('%(asctime)s - %(message)s')
 log_file_handler = logging.FileHandler('/logs/server.log')
@@ -61,6 +70,9 @@ def hash_password(password):
 
 def check_password(password, hashed):
     return bcrypt.checkpw(password.encode(), hashed.encode())
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # --- Game State ---
 players = {}   # { sid : { username, x, y, score } }
@@ -76,14 +88,27 @@ def join_game(data):
     username = data.get('username')
     if username:
         sid = request.sid
+
+        # Fetch avatar from DB before assigning player
+        user = mongo.db.users.find_one({"username": username})
+        avatar_filename = user.get('avatar', 'default.png')  # e.g. "andrew.jpg"
+
         players[sid] = {
             'username': username,
             'x': random.randint(0, 19),
             'y': random.randint(0, 19),
-            'score': 0
+            'score': 0,
+            'avatar': avatar_filename  # ← store avatar filename here
         }
+
         print(f"✅ {username} joined the game!")
         emit('players_update', {'players': list(players.values())}, broadcast=True)
+
+        socketio.emit('game_update', {
+            'players': list(players.values()),
+            'foods': foods
+        })
+
 @socketio.on('move')
 def move(data):
     sid = request.sid
@@ -202,8 +227,41 @@ def login():
     if user and check_password(password, user['password']):
         return jsonify({"status": "success", "message": "Login successful", "token": "dummy-token"}), 200
     return jsonify({"status": "error", "message": "Invalid username or password"}), 401
+@app.route('/api/upload-avatar', methods=['POST'])
+def upload_avatar():
+    print("🟡 Reached upload-avatar endpoint")
+    if 'avatar' not in request.files:
+        return jsonify({"status": "error", "message": "No file uploaded"}), 400
+
+    file = request.files['avatar']
+    username = request.form.get('username')
+
+    if not username or not file.filename or not allowed_file(file.filename):
+        return jsonify({"status": "error", "message": "Missing or invalid file/username"}), 400
+
+    try:
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = secure_filename(f"{username}.{ext}")
+        avatar_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+        img = Image.open(file.stream)
+        img.save(avatar_path)
+
+        # 🔄 Update user in MongoDB to store the avatar filename
+        mongo.db.users.update_one(
+            {"username": username},
+            {"$set": {"avatar": filename}}
+        )
+
+        return jsonify({"status": "success", "message": "Avatar uploaded"}), 200
+    except Exception as e:
+        print("Avatar upload error:", e)
+        return jsonify({"status": "error", "message": "Invalid image"}), 400
 
 # --- Static Serving ---
+@app.route('/avatars/<filename>')
+def get_avatar(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], secure_filename(filename))
 @app.route('/')
 def serve_react():
     return send_from_directory(app.static_folder, 'index.html')
@@ -215,3 +273,4 @@ def serve_static(path):
 # --- Start ---
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=8080)
+

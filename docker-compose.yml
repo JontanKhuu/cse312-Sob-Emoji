@@ -2,16 +2,13 @@ version: '3.8'
 
 services:
   web:
-    deploy:
-      resources:
-        limits:
-          memory: 512M
     build: .
     ports:
       - "8080:8080"
     volumes:
       - .:/app
       - ./logs:/logs
+      - ./avatars:/app/avatars
     environment:
       - LOG_LEVEL=INFO
       - LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -24,6 +21,7 @@ services:
 
   db:
     image: mongo:latest
+
     volumes:
       - db_data:/data/db
     # Remove the environment variables that enable authentication

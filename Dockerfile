@@ -17,6 +17,7 @@ RUN apk update && apk add --no-cache \
 
 # Create app folder and fix permissions BEFORE switching user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 RUN mkdir /app && chown appuser:appgroup /app
 
 # Create user and group
