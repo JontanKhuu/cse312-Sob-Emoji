@@ -17,7 +17,36 @@ function App() {
   const [foods, setFoods] = useState([]);
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState('');
+  const [stats, setStats] = useState({ games_played: 0, games_won: 0 });
 
+  const [gameStats, setGameStats] = useState([]);
+  const [achievements, setAchievements] = useState({});
+
+  useEffect(() => {
+    if (currentUser) {
+      axios.get(`/api/achievements/${currentUser}`)
+        .then(res => setAchievements(res.data))
+        .catch(err => console.error("Failed to fetch achievements", err));
+    }
+  }, [currentUser]);
+
+  
+  useEffect(() => {
+    let intervalId;
+  
+    axios.get('/api/game-stats')
+      .then(res => setGameStats(res.data))
+      .catch(err => console.error("Error fetching game stats:", err));
+  
+    intervalId = setInterval(() => {
+      axios.get('/api/game-stats')
+        .then(res => setGameStats(res.data))
+        .catch(err => console.error("Error fetching game stats:", err));
+    }, 10000); // every 10s
+  
+    return () => clearInterval(intervalId); // <--- this was missing, and your old cleanup line ran immediately
+  }, []);
+  
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('username');
@@ -173,12 +202,29 @@ function App() {
 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [socket, currentUser]);
-
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('username');
+    if (token && savedUser) {
+      setIsLoggedIn(true);
+      setCurrentUser(savedUser);
+  
+      // Fetch stats
+      axios.get(`/api/stats/${savedUser}`)
+        .then(res => {
+          setStats(res.data);
+        })
+        .catch(err => {
+          console.error("Error fetching stats:", err);
+        });
+    }
+  }, []);
+  
   return (
     <div className="App">
       <header className="App-header">
         <h1 className="App-title">😭 CSE 312 GAME IDEA</h1>
-
+        
         {isLoggedIn ? (
           <div className="login-status">
             <p className="auth-message">✅ Logged in as <strong>{currentUser}</strong></p>
@@ -217,6 +263,74 @@ function App() {
           </div>
         )}
       </header>
+      {isLoggedIn && (
+  <div className="achievements">
+    <h2>🏅 Achievements</h2>
+    <ul>
+      <li>{achievements.played_1_game ? "✅" : "⬜"} Play 1 Game</li>
+      <li>{achievements.won_1_game ? "✅" : "⬜"} Win 1 Game</li>
+      <li>{achievements.ate_50_food ? "✅" : "⬜"} Eat 50 Food</li>
+    </ul>
+  </div>
+)}
+
+      {gameStats.length > 0 && (
+  <div className="game-stats">
+    <h2>📊 All Game Stats</h2>
+    <table className="stats-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Username</th>
+          <th>Games Played</th>
+          <th>Games Won</th>
+          <th>Food Eaten</th>
+        </tr>
+      </thead>
+      <tbody>
+        {gameStats.map((user, index) => (
+          <tr key={user.username}>
+            <td>{index + 1}</td>
+            <td>{user.username}</td>
+            <td>{user.games_played || 0}</td>
+            <td>{user.games_won || 0}</td>
+            <td>{user.food_eaten || 0}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+{gameStats.length > 0 && (
+  <div className="leaderboard">
+    <h2>🏆 Leaderboard</h2>
+    <table className="leaderboard-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Username</th>
+          <th>Games Played</th>
+          <th>Games Won</th>
+        </tr>
+      </thead>
+      <tbody>
+        {gameStats
+          .sort((a, b) => (b.games_won || 0) - (a.games_won || 0)) // Fix sorting key
+          .map((user, idx) => (
+            <tr
+              key={user.username}
+              className={user.username === currentUser ? 'highlight-row' : ''}
+            >
+              <td>{idx + 1}</td>
+              <td>{user.username}</td>
+              <td>{user.games_played || 0}</td> {/* Fix key */}
+              <td>{user.games_won || 0}</td>     {/* Fix key */}
+            </tr>
+          ))}
+      </tbody>
+    </table>
+  </div>
+)}
 
       <main className="App-main">
         {message && <p className="auth-message">{message}</p>}
@@ -240,6 +354,7 @@ function App() {
 >
   Change Avatar
 </button>
+
         {gameOver && (
           <div className="game-over">
             <h2>🏆 The winner is {winner}!</h2>
@@ -248,6 +363,14 @@ function App() {
             </button>
           </div>
         )}
+{isLoggedIn && (
+  <div className="user-stats">
+    <p>🎮 Games Played: {stats.games_played}</p>
+    <p>🏆 Games Won: {stats.games_won}</p>
+  </div>
+)}
+
+
 
         {inGame && !gameOver && (
           <>

@@ -73,6 +73,34 @@ def check_password(password, hashed):
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+def check_and_update_achievements(username):
+    achievements = mongo.db.achievements.find_one({"username": username})
+    if not achievements:
+        # Initialize
+        achievements = {
+            "username": username,
+            "played_1_game": False,
+            "won_1_game": False,
+            "ate_50_food": False
+        }
+        mongo.db.achievements.insert_one(achievements)
+
+    stats = mongo.db.game_stats.find_one({"username": username}) or {}
+
+    updates = {}
+    if not achievements.get("played_1_game") and stats.get("games_played", 0) >= 1:
+        updates["played_1_game"] = True
+    if not achievements.get("won_1_game") and stats.get("games_won", 0) >= 1:
+        updates["won_1_game"] = True
+    if not achievements.get("ate_50_food") and stats.get("food_eaten", 0) >= 50:
+        updates["ate_50_food"] = True
+
+    if updates:
+        mongo.db.achievements.update_one(
+            {"username": username},
+            {"$set": updates}
+        )
+
 
 # --- Game State ---
 players = {}   # { sid : { username, x, y, score } }
@@ -81,6 +109,17 @@ game_running = False
 
 def spawn_food():
     return {'x': random.randint(0, 19), 'y': random.randint(0, 19)}
+
+@app.route('/api/achievements/<username>', methods=['GET'])
+def get_user_achievements(username):
+    achievements = mongo.db.achievements.find_one({"username": username}, {'_id': 0})
+    if not achievements:
+        achievements = {
+            "played_1_game": False,
+            "won_1_game": False,
+            "ate_50_food": False
+        }
+    return jsonify(achievements)
 
 # --- WebSocket Handlers ---
 @socketio.on('join_game')
@@ -91,15 +130,24 @@ def join_game(data):
 
         # Fetch avatar from DB before assigning player
         user = mongo.db.users.find_one({"username": username})
-        avatar_filename = user.get('avatar', 'default.png')  # e.g. "andrew.jpg"
+        avatar_filename = user.get('avatar', 'default.png')
 
         players[sid] = {
             'username': username,
             'x': random.randint(0, 19),
             'y': random.randint(0, 19),
             'score': 0,
-            'avatar': avatar_filename  # ← store avatar filename here
+            'avatar': avatar_filename
         }
+    
+        # Increment games_played
+        mongo.db.game_stats.update_one(
+            {"username": username},
+            {"$inc": {"games_played": 1}},
+            {"$setOnInsert": {"games_played": 0, "games_won": 0, "food_eaten": 0}},
+            upsert=True  # creates doc if it doesn't exist
+        )
+    
 
         print(f"✅ {username} joined the game!")
         emit('players_update', {'players': list(players.values())}, broadcast=True)
@@ -142,6 +190,14 @@ def move(data):
                     player['score'] += 1
                     foods.remove(food)
                     foods.append(spawn_food())
+
+                    # Increment food eaten count in MongoDB
+                    mongo.db.game_stats.update_one(
+                        {"username": player['username']},
+                        {"$inc": {"food_eaten": 1}},
+                        upsert=True
+                    )
+                    check_and_update_achievements(player['username'])
                     break
 @socketio.on('disconnect')
 def disconnect():
@@ -174,34 +230,53 @@ def game_loop():
         })
 
         # End game after 2 minutes
-        if time.time() - start_time >= 60:
+        if time.time() - start_time >= 10:
             end_game()
 @socketio.on('force_end_game')
 def end_game():
     global game_running
     print("🏁 Game ending")
     game_running = False
-
+    for player in players.values():
+        mongo.db.game_stats.update_one(
+            {"username": player['username']},
+            {"$inc": {"games_played": 1}}
+        )
+        check_and_update_achievements(player['username'])
+    
     if players:
         winner = max(players.values(), key=lambda p: p['score'])
+        mongo.db.game_stats.update_one(
+            {"username": winner['username']},
+            {"$inc": {"games_won": 1}},
+            upsert=True
+        )
+        check_and_update_achievements(winner['username'])
         socketio.emit('game_over', {
-    'winner': winner['username'],
-    'score': winner['score']
-})
+            'winner': winner['username'],
+            'score': winner['score']
+        })
     else:
         socketio.emit('game_over', {
-    'winner': None,
-    'score': 0
-})
-
+            'winner': None,
+            'score': 0
+        })
+    
     players.clear()
     foods.clear()
-
-# Start game loop on server start
 @socketio.on('start_game')
 def start_game():
     if not game_running:
         socketio.start_background_task(game_loop)
+@app.route('/api/stats/<username>', methods=['GET'])
+def get_user_stats(username):
+    user_stats = mongo.db.game_stats.find_one({"username": username})
+    if not user_stats:
+        return jsonify({"games_played": 0, "games_won": 0})
+    return jsonify({
+        "games_played": user_stats.get("games_played", 0),
+        "games_won": user_stats.get("games_won", 0)
+    })
 
 # --- REST APIs ---
 @app.route('/api/register', methods=['POST'])
@@ -258,6 +333,11 @@ def upload_avatar():
         print("Avatar upload error:", e)
         return jsonify({"status": "error", "message": "Invalid image"}), 400
 
+@app.route('/api/game-stats', methods=['GET'])
+def get_all_game_stats():
+    stats = list(mongo.db.game_stats.find({}, {'_id': 0}))  # Exclude Mongo's default `_id` field
+    return jsonify(stats)
+
 # --- Static Serving ---
 @app.route('/avatars/<filename>')
 def get_avatar(filename):
@@ -269,6 +349,12 @@ def serve_react():
 @app.route('/<path:path>')
 def serve_static(path):
     return send_from_directory(app.static_folder, path)
+@app.route('/api/clear-game-data', methods=['POST'])
+def clear_game_data():
+    mongo.db.game_stats.drop()
+    mongo.db.food_stats.drop()
+    mongo.db.achievements.drop()
+    return jsonify({"status": "success", "message": "Game-related collections cleared."})
 
 # --- Start ---
 if __name__ == '__main__':

@@ -175,3 +175,31 @@
   bottom: 0;
   right: 0;
 }
+
+.leaderboard {
+  margin: 20px auto;
+  width: 90%;
+  text-align: center;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+
+.leaderboard-table th {
+  background-color: #333;
+  color: white;
+}
+
+.highlight-row {
+  background-color: #e0ffe0;
+  font-weight: bold;
+}
