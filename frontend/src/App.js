@@ -53,6 +53,7 @@ function App() {
     if (token && savedUser) {
       setIsLoggedIn(true);
       setCurrentUser(savedUser);
+      axios.defaults.headers.common['Username'] = savedUser;
     }
   }, []);
 
@@ -64,6 +65,7 @@ function App() {
       localStorage.setItem('username', username);
       setIsLoggedIn(true);
       setCurrentUser(username);
+      axios.defaults.headers.common['Username'] = username;
       setMessage('✅ Logged in successfully!');
       setUsername('');
       setPassword('');

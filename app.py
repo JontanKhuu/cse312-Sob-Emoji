@@ -15,7 +15,7 @@ import random
 import logging
 from werkzeug.utils import secure_filename
 from PIL import Image
-
+from flask import g
 # --- Flask Setup ---
 app = Flask(__name__, static_folder='frontend/build', static_url_path='/')
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -35,21 +35,117 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Ensure upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Server log: for readable logs like requests and response codes
 log_formatter = logging.Formatter('%(asctime)s - %(message)s')
 log_file_handler = logging.FileHandler('/logs/server.log')
 log_file_handler.setFormatter(log_formatter)
 log_file_handler.setLevel(logging.INFO)
 
-
 app.logger.setLevel(logging.INFO)
-app.logger.addHandler(log_file_handler)
-# Log every request
+app.logger.addHandler(log_file_handler)  # ✅ This stays
+
+# Raw HTTP log: separate logger for raw HTTP request/response
+raw_log_handler = logging.FileHandler('/logs/raw_http.log')
+raw_log_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+raw_log_handler.setLevel(logging.INFO)
+
+raw_logger = logging.getLogger('raw_logger')
+raw_logger.setLevel(logging.INFO)
+raw_logger.addHandler(raw_log_handler)  # ✅ Only added to raw_logger
+
+
 @app.before_request
-def log_request_info():
+def combined_before_request():
+    # === 1. RAW HTTP LOGGING ===
+    try:
+        headers = dict(request.headers)
+        headers.pop("Authorization", None)
+        log_entry = f"🟢 RAW REQUEST: {request.method} {request.path}\nHeaders: {headers}"
+
+        body_data = request.get_data(as_text=True)
+
+        if body_data and all(32 <= ord(c) <= 126 or c in '\r\n\t' for c in body_data[:256]):
+            # Redact sensitive fields if JSON
+            if request.content_type and 'application/json' in request.content_type:
+                try:
+                    import json
+                    json_body = json.loads(body_data)
+                    for key in list(json_body.keys()):
+                        if 'password' in key.lower() or 'token' in key.lower():
+                            json_body[key] = '[REDACTED]'
+                    redacted_body = json.dumps(json_body)[:2048]
+                    log_entry += f"\nBody (sanitized): {redacted_body}"
+                except Exception:
+                    log_entry += f"\nBody (raw): {body_data[:2048]}"
+            else:
+                log_entry += f"\nBody (non-JSON): {body_data[:2048]}"
+        else:
+            log_entry += "\n[Binary or non-text body skipped]"
+
+        raw_logger.info(log_entry)
+    except Exception as e:
+        app.logger.error(f"Failed to log raw request: {e}")
+
+    # === 2. SERVER.LOG LOGGING ===
+    g.start_time = time.time()
     ip = request.remote_addr
     method = request.method
     path = request.path
-    app.logger.info(f"{ip} - {method} {path}")
+    user = request.headers.get('Username', 'Anonymous')
+    app.logger.info(f"REQUEST from {ip} ({user}) - {method} {path}")
+
+    if request.method in ['POST', 'PUT']:
+        headers = {k: v for k, v in request.headers.items() if 'auth' not in k.lower()}
+        app.logger.info(f"HEADERS: {headers}")
+
+        if request.content_type and 'application/json' in request.content_type:
+            try:
+                import json
+                json_body = json.loads(request.get_data(as_text=True))
+                for key in list(json_body.keys()):
+                    if 'password' in key.lower() or 'token' in key.lower():
+                        json_body[key] = '[REDACTED]'
+                redacted_body = json.dumps(json_body)[:2048]
+                app.logger.info(f"BODY: {redacted_body}")
+            except Exception:
+                body = request.get_data(as_text=True)[:2048]
+                app.logger.info(f"BODY: {body}")
+
+@app.after_request
+def log_response_info(response):
+    try:
+        ip = request.remote_addr
+        user = request.headers.get('Username', 'Anonymous')
+        method = request.method
+        path = request.path
+        code = response.status_code
+        app.logger.info(f"RESPONSE to {ip} ({user}) - {method} {path} - {code}")
+
+        # Only log POST/PUT body content (optional and size-limited)
+        if request.method in ['POST', 'PUT']:
+            content_type = response.content_type or ''
+            headers = {k: v for k, v in response.headers.items() if 'auth' not in k.lower()}
+            app.logger.info(f"RESPONSE HEADERS: {headers}")
+
+            if 'application/json' in content_type:
+                try:
+                    import json
+                    response_data = json.loads(response.get_data(as_text=True))
+                    for key in list(response_data.keys()):
+                        if 'password' in key.lower() or 'token' in key.lower():
+                            response_data[key] = '[REDACTED]'
+                    sanitized = json.dumps(response_data)[:2048]
+                    app.logger.info(f"RESPONSE BODY: {sanitized}")
+                except Exception:
+                    raw_body = response.get_data(as_text=True)[:2048]
+                    app.logger.info(f"RESPONSE BODY (raw): {raw_body}")
+            else:
+                raw_body = response.get_data(as_text=True)[:2048]
+                app.logger.info(f"RESPONSE BODY (non-JSON): {raw_body}")
+    except Exception as e:
+        app.logger.error(f"Failed to log response: {e}")
+
+    return response
 mongo = None
 for i in range(5):
     try:
@@ -285,12 +381,24 @@ def register():
     username = data.get('username')
     password = data.get('password')
     if not username or not password:
+        app.logger.info(f"Register success: {username}")  # on success
+        app.logger.info(f"Register failed: {username} - reason: <reason>")
+
         return jsonify({"status": "error", "message": "Missing username or password"}), 400
     if not is_valid_password(password):
+        app.logger.info(f"Register success: {username}")  # on success
+        app.logger.info(f"Register failed: {username} - reason: <reason>")
+
         return jsonify({"status": "error", "message": "Password must be at least 8 characters and include a special character"}), 400
     if mongo.db.users.find_one({"username": username}):
+        app.logger.info(f"Register success: {username}")  # on success
+        app.logger.info(f"Register failed: {username} - reason: <reason>")
+
         return jsonify({"status": "error", "message": "Username already exists"}), 409
     mongo.db.users.insert_one({"username": username, "password": hash_password(password)})
+    app.logger.info(f"Register success: {username}")  # on success
+    app.logger.info(f"Register failed: {username} - reason: <reason>")
+
     return jsonify({"status": "success", "message": "Registered successfully"}), 201
 
 @app.route('/api/login', methods=['POST'])
@@ -299,8 +407,13 @@ def login():
     username = data.get('username')
     password = data.get('password')
     user = mongo.db.users.find_one({"username": username})
+    
+    
     if user and check_password(password, user['password']):
+        app.logger.info(f"Login success: {username}")  # on success
         return jsonify({"status": "success", "message": "Login successful", "token": "dummy-token"}), 200
+    app.logger.info(f"Login failed: {username} - Invalid credentials")
+
     return jsonify({"status": "error", "message": "Invalid username or password"}), 401
 @app.route('/api/upload-avatar', methods=['POST'])
 def upload_avatar():
@@ -355,8 +468,10 @@ def clear_game_data():
     mongo.db.food_stats.drop()
     mongo.db.achievements.drop()
     return jsonify({"status": "success", "message": "Game-related collections cleared."})
-
-# --- Start ---
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=8080)
+    try:
+        socketio.run(app, host='0.0.0.0', port=8080)
+    except Exception as e:
+        import traceback
+        app.logger.error("Unhandled exception:\n" + traceback.format_exc())
 
