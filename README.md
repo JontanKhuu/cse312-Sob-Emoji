@@ -14,3 +14,4 @@ Players can "interact" by blocking each other
 
 Every game lasts for 60 seconds, Once you win a game, play a game, or eat 50 food you will receive and achievement. After the game ends, press return home, your game stats and leaderboards will be updated, please refresh for achievements if they lag.
 
+*** When running the game on localhost refresh at least once. 
