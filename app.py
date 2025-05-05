@@ -326,7 +326,7 @@ def game_loop():
         })
 
         # End game after 2 minutes
-        if time.time() - start_time >= 10:
+        if time.time() - start_time >= 60:
             end_game()
 @socketio.on('force_end_game')
 def end_game():
